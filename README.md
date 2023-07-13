@@ -1,6 +1,8 @@
 - Clerk Authentication
 - PlanetScaler Database (My SQL)
 - Shadcn-ui
+- cloudinary
+- next-cloudinary
 
 * npx prisma init -y
 * npx prisma generate
