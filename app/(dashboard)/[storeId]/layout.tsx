@@ -26,17 +26,9 @@ export default async function Dashboard({children, params}: DashboardType) {
         redirect('/');
     }
 
-      const stores = await prismadb?.store.findMany({
-        where: {
-        userId,
-        }
-    })
-
-    console.log(stores)
-
     return (
         <>
-            <Navbar stores={stores}/>
+            <Navbar/>
             {children}
         </>
     )
