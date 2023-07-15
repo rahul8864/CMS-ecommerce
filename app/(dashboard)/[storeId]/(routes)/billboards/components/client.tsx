@@ -23,15 +23,15 @@ export const BillboardClient: React.FC<BillboardClientProps> = ({
         <>
             <div className="flex items-center justify-between">
                 <Heading
-                title={`Billboard (${data?.length})`}
-                description="Manage billboards for your store"/>
+                    title={`Billboard (${data?.length})`}
+                    description="Manage billboards for your store"/>
                 <Button onClick={() => router.push(`/${params.storeId}/billboards/new`)}>
                     <Plus className="w-4 h-4 mr-2" />
                     Add New
                 </Button>
             </div>
             <Separator />
-            <DataTable columns={columns} data={data} />
+            <DataTable columns={columns} data={data} searchKey="label" />
         </>
     )
 }
