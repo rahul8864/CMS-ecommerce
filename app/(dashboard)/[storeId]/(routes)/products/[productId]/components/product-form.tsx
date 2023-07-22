@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import * as z from 'zod'
-import { Image, Product } from "@prisma/client";
+import { Category, Color, Image, Product, Size } from "@prisma/client";
 import { Heading } from "@/components/ui/heading";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -16,21 +16,37 @@ import axios from 'axios';
 import { useParams, useRouter } from 'next/navigation';
 import { AlertModal } from '@/components/modals/alert-modal';
 import ImageUpload from '@/components/ui/image-upload';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-interface SettingsFromProps {
+interface ProductFromProps {
     initialData: Product & {
         images: Image[]
-    } | null; 
+    } | null;
+    categories: Category[]
+    colors: Color[]
+    sizes: Size[]
 }
 
 const formSchema = z.object({
-    label: z.string().min(1),
-    imageUrl: z.string().min(1),
+    name: z.string().min(1),
+    images: z.object({ url: z.string() }).array(),
+    price: z.coerce.number().min(1),
+    categoryId: z.string().min(1),
+    colorId: z.string().min(1),
+    sizeId: z.string().min(1),
+    isFeatured: z.boolean().default(false).optional(),
+    isArchived: z.boolean().default(false).optional()
+    
 })
 
 type ProductFormValues = z.infer<typeof formSchema>;
 
-export const ProductForm: React.FC<SettingsFromProps> = ({ initialData }) => {
+export const ProductForm: React.FC<ProductFromProps> = ({
+    initialData,
+    categories,
+    colors,
+    sizes
+}) => {
 
     const params = useParams();
     const router = useRouter();
@@ -45,7 +61,10 @@ export const ProductForm: React.FC<SettingsFromProps> = ({ initialData }) => {
 
     const form = useForm<ProductFormValues>({
         resolver: zodResolver(formSchema),
-        defaultValues: initialData || {
+        defaultValues: initialData ? {
+            ...initialData,
+            price: parseFloat(String(initialData?.price))
+        } : {
             name: '',
             images: [],
             price: 0,
@@ -93,10 +112,10 @@ export const ProductForm: React.FC<SettingsFromProps> = ({ initialData }) => {
     return (
         <>
             <AlertModal
-            isOpen={open}
-            onClose={() => setOpen(false)}
-            onConfirm={onDelete}
-            loading={loading}
+                isOpen={open}
+                onClose={() => setOpen(false)}
+                onConfirm={onDelete}
+                loading={loading}
             />
             <div className="flex items-center justify-between">
                 <Heading title={title} description={description} />
@@ -111,16 +130,16 @@ export const ProductForm: React.FC<SettingsFromProps> = ({ initialData }) => {
                 <form onSubmit={form.handleSubmit(onSubmit)} className="w-full space-y-8">
                     <FormField
                         control={form.control} 
-                        name="imageUrl"
+                        name="images"
                         render={({field}) => (
                             <FormItem>
                                 <FormLabel>Background Image</FormLabel>
                                 <FormControl>
                                     <ImageUpload
-                                        value={field.value ? [field.value] : []}
+                                        value={field.value.map((image) => image.url)}
                                         disabled={loading}
-                                        onChange={(url) => field.onChange(url)}
-                                        onRemove={() => field.onChange('')}
+                                        onChange={(url) => field.onChange([...field.value, { url }])}
+                                        onRemove={(url) => field.onChange([...field.value.filter((image) => image.url !== url)])}
                                     />
                                 </FormControl>
                                 <FormMessage />
@@ -130,13 +149,122 @@ export const ProductForm: React.FC<SettingsFromProps> = ({ initialData }) => {
                     <div className='grid grid-cols-3 gap-8'>
                         <FormField
                             control={form.control} 
-                            name="label"
+                            name="name"
                             render={({field}) => (
                                 <FormItem>
-                                    <FormLabel>Label</FormLabel>
+                                    <FormLabel>Name</FormLabel>
                                     <FormControl>
-                                        <Input disabled={loading} placeholder='Product label' {...field} />
+                                        <Input disabled={loading} placeholder='Product Name' {...field} />
                                     </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control} 
+                            name="price"
+                            render={({field}) => (
+                                <FormItem>
+                                    <FormLabel>Price</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" disabled={loading} placeholder='Product Price' {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control} 
+                            name="categoryId"
+                            render={({field}) => (
+                                <FormItem>
+                                    <FormLabel>Category</FormLabel>
+                                    <Select
+                                        disabled={loading}
+                                        onValueChange={field.onChange}
+                                        value={field.value}
+                                        defaultValue={field.value}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue
+                                                    defaultValue={field.value}
+                                                    placeholder='Select a Category'
+                                                />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {categories.map(category => (
+                                                <SelectItem key={category.id} value={category.id}>
+                                                    {category.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control} 
+                            name="sizeId"
+                            render={({field}) => (
+                                <FormItem>
+                                    <FormLabel>Size</FormLabel>
+                                    <Select
+                                        disabled={loading}
+                                        onValueChange={field.onChange}
+                                        value={field.value}
+                                        defaultValue={field.value}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue
+                                                    defaultValue={field.value}
+                                                    placeholder='Select a size'
+                                                />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {sizes.map(size => (
+                                                <SelectItem key={size.id} value={size.id}>
+                                                    {size.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control} 
+                            name="colorId"
+                            render={({field}) => (
+                                <FormItem>
+                                    <FormLabel>Color</FormLabel>
+                                    <Select
+                                        disabled={loading}
+                                        onValueChange={field.onChange}
+                                        value={field.value}
+                                        defaultValue={field.value}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue
+                                                    defaultValue={field.value}
+                                                    placeholder='Select a color'
+                                                />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {colors.map(color => (
+                                                <SelectItem key={color.id} value={color.id}>
+                                                    {color.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                     <FormMessage />
                                 </FormItem>
                             )}
